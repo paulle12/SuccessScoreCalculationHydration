@@ -1,14 +1,18 @@
-# Base image with Java 21
-FROM eclipse-temurin:21-jdk-alpine
+# Use Java 21 with Maven (for building inside Docker)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy the built JAR into the container
-COPY target/SuccessScoreCalculationHydration-0.0.1-SNAPSHOT.jar app.jar
+# Copy all project files and build
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Expose the port the app runs on (can keep 8080 internally)
+# Use a smaller runtime image
+FROM eclipse-temurin:21-jdk-alpine
+WORKDIR /app
+
+# Copy the jar from the builder image
+COPY --from=build /app/target/SuccessScoreCalculationHydration-0.0.1-SNAPSHOT.jar app.jar
+
 EXPOSE 8080
-
-# Run the app
 ENTRYPOINT ["java", "-jar", "app.jar"]
